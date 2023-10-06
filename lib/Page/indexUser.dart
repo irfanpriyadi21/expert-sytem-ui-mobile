@@ -7,7 +7,8 @@ import 'Admin/dashboardAdmin.dart';
 import 'Profile/profile.dart';
 
 class IndexUser extends StatefulWidget {
-  const IndexUser({Key? key}) : super(key: key);
+  final int index;
+  const IndexUser(this.index, {Key? key}) : super(key: key);
 
   @override
   State<IndexUser> createState() => _IndexUserState();
@@ -15,10 +16,30 @@ class IndexUser extends StatefulWidget {
 
 class _IndexUserState extends State<IndexUser> {
   int _selectedIndex = 0;
-  var _pages = <Widget>[
-    DashboardUser(),
-    Profile(),
+  final List<Widget> _pages = <Widget>[
+    const DashboardUser(),
+    const Profile(),
   ];
+
+
+  set(){
+    setState(() {
+      _selectedIndex = widget.index;
+      print(widget.index);
+    });
+  }
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    if(widget.index != null){
+      set();
+    }
+  }
+
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

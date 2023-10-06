@@ -14,6 +14,24 @@ class DashboardUser extends StatefulWidget {
 }
 
 class _DashboardUserState extends State<DashboardUser> {
+  String? name;
+  String? email;
+
+  getPref() async {
+    SharedPreferences preferences = await SharedPreferences.getInstance();
+    setState(() {
+      email = preferences.getString('email')?? "";
+      name = preferences.getString('name')?? "";
+    });
+  }
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    getPref();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -89,7 +107,7 @@ class _DashboardUserState extends State<DashboardUser> {
                                             ),
                                           ),
                                           Text(
-                                            'Irfan Priyadi Nurfauzi !',
+                                            '$name !',
                                             style: GoogleFonts.poppins(
                                                 textStyle: TextStyle(
                                                     color: Colors.white,

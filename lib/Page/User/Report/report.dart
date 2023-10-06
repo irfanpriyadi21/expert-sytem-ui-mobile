@@ -38,7 +38,7 @@ class _ReportState extends State<Report> {
           }),
           centerTitle: true,
           elevation: 0.0,
-          brightness: Brightness.dark,
+          // brightness: Brightness.dark,
         ),
         body: Container(
           height: context.height(),

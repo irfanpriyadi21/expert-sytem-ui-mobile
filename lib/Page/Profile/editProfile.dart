@@ -46,7 +46,7 @@ class _EditProfileState extends State<EditProfile> {
           }),
           centerTitle: true,
           elevation: 0.0,
-          brightness: Brightness.dark,
+          // brightness: Brightness.dark,
         ),
         body: Container(
           height: context.height(),

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:nb_utils/nb_utils.dart';
+import 'package:tugas_kp/Page/Login.dart';
 import 'package:tugas_kp/Page/Profile/editProfile.dart';
+import 'package:tugas_kp/Provider/Auth/logout.dart';
 
 class Profile extends StatefulWidget {
   const Profile({Key? key}) : super(key: key);
@@ -11,6 +13,23 @@ class Profile extends StatefulWidget {
 }
 
 class _ProfileState extends State<Profile> {
+  String? name;
+  String? email;
+
+  getPref() async {
+    SharedPreferences preferences = await SharedPreferences.getInstance();
+    setState(() {
+      email = preferences.getString('email')?? "";
+      name = preferences.getString('name')?? "";
+    });
+  }
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    getPref();
+  }
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -24,7 +43,7 @@ class _ProfileState extends State<Profile> {
           centerTitle: true,
           automaticallyImplyLeading: false,
           elevation: 0.0,
-          brightness: Brightness.dark,
+          // brightness: Brightness.dark,
         ),
         body: Container(
           height: context.height(),
@@ -44,10 +63,10 @@ class _ProfileState extends State<Profile> {
                   backgroundColor: Colors.transparent,
                 ),
                 16.height,
-                Text('Irfan Priyadi Nurfauzi', style: GoogleFonts.poppins(
+                Text('$name', style: GoogleFonts.poppins(
                   textStyle: boldTextStyle(color: Colors.grey)
                 )),
-                Text('irfanpnf@gmail.com', style: GoogleFonts.poppins(
+                Text('$email', style: GoogleFonts.poppins(
                     textStyle: secondaryTextStyle(color: Colors.grey)
                 )),
                 30.height,
@@ -71,7 +90,8 @@ class _ProfileState extends State<Profile> {
                     decoration: boxDecorationRoundedWithShadow(12, backgroundColor: context.cardColor),
                     trailing: Icon(Icons.power_settings_new, color: Colors.red),
                     onTap: () {
-                      //
+                      Logout();
+                      Login().launch(context);
                     }),
 
               ],

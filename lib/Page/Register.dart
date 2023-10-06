@@ -1,7 +1,15 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:nb_utils/nb_utils.dart';
+import 'package:page_transition/page_transition.dart';
+import 'package:provider/provider.dart';
+import 'package:tugas_kp/Page/Login.dart';
+import 'package:tugas_kp/Page/widget/loading.dart';
 
+import '../Model/string_http_exception.dart';
+import '../Provider/Auth/auth.dart';
 import '../utils/alert.dart';
 import '../utils/widget/WAColors.dart';
 import '../utils/widget/WAWidgets.dart';
@@ -21,7 +29,44 @@ class _RegisterState extends State<Register> {
   FocusNode fullNameFocusNode = FocusNode();
   FocusNode emailFocusNode = FocusNode();
   FocusNode passWordFocusNode = FocusNode();
+  bool isLoading = false;
 
+  register() async {
+    setState(() {
+      isLoading = true;
+    });
+    try {
+      await Provider.of<Auth>(context, listen: false).register(
+          name.value.text,
+          email.value.text,
+          password.value.text,
+      );
+    } on StringHttpException catch (e) {
+      var errorMessage = e.toString();
+      AlertFail(errorMessage);
+    } catch (error, s) {
+      AlertFail("Register Gagal !! $error");
+    }
+    setState(() {
+      isLoading = false;
+      bool register = Provider
+          .of<Auth>(context, listen: false)
+          .regis!;
+      if(register){
+        AlertSucess("Berhasil Menyimpan Data !");
+        Timer(Duration(seconds: 2), (){
+          Navigator.pushReplacement(
+              context,
+              PageTransition(
+                  type: PageTransitionType.fade,
+                  child: const Login()
+              )
+          );
+        });
+      }
+
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -97,7 +142,9 @@ class _RegisterState extends State<Register> {
                                   focus: passWordFocusNode,
                                 ),
                                 30.height,
-                                AppButton(
+                                isLoading
+                                ? Loading()
+                                : AppButton(
                                     text: "Register Account",
                                     color: WAPrimaryColor,
                                     textColor: Colors.white,
@@ -107,7 +154,7 @@ class _RegisterState extends State<Register> {
                                       if(email.value.text.isEmpty || name.value.text.isEmpty || password.value.text.isEmpty){
                                         AlertFail("Lengkapi Data !");
                                       }else{
-
+                                        register();
                                       }
                                     }).paddingOnly(left: context.width() * 0.1, right: context.width() * 0.1),
                                 30.height,
