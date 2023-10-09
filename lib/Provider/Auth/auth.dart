@@ -8,6 +8,7 @@ import '../base_url.dart';
 class Auth with ChangeNotifier{
   bool login = false;
   bool regis = false;
+  int? role;
 
   Future<void> authenticate(String username, password)async {
     final url = UrlApi.login;
@@ -26,10 +27,13 @@ class Auth with ChangeNotifier{
         var result = responseData['results'];
         String token = result['token']['value'];
         int id = result['user']['id'];
+        role = result['user']['role_id'];
         String name = result['user']['name'];
         String email = result['user']['email'];
+        String username = result['user']['username'];
+
         String loginStatus = 'success';
-        sharedPref(token, loginStatus, id, name, email);
+        sharedPref(token, loginStatus, id, name, email, username);
       }else{
         login = false;
         String message = responseData['message'];
@@ -64,12 +68,14 @@ class Auth with ChangeNotifier{
     }
   }
 
-  sharedPref(String token, status, id, name, email)async{
+  sharedPref(String token, status, id, name, email, username)async{
     SharedPreferences prefs = await SharedPreferences.getInstance();
     prefs.setString("token", token);
     prefs.setString("loginStatus", status);
     prefs.setInt("id", id);
+    prefs.setInt("role", role!);
     prefs.setString("name", name);
     prefs.setString("email", email);
+    prefs.setString("username", username);
   }
 }

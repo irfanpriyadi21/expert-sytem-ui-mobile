@@ -1,7 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:nb_utils/nb_utils.dart';
+import 'package:provider/provider.dart';
+import 'package:tugas_kp/Model/ModelListDiagnosa.dart';
 import 'package:tugas_kp/Page/User/Report/reportDetail.dart';
+import 'package:tugas_kp/Provider/Diagnosa/diagnosa.dart';
+
+import '../../../Model/string_http_exception.dart';
+import '../../../utils/alert.dart';
+import '../../widget/loading.dart';
 
 
 class Report extends StatefulWidget {
@@ -12,6 +19,49 @@ class Report extends StatefulWidget {
 }
 
 class _ReportState extends State<Report> {
+  List<ModelListDiagnosa> listDiagnosa = [];
+  bool isLoading = false;
+  int? role;
+  int? userId;
+
+  getData()async{
+    setState(() {
+      isLoading = true;
+    });
+    try{
+      await Provider.of<DiagnosaApi>(context, listen: false).getListDiagnosa(
+          role == 1
+          ? ""
+          : "?created_by=$userId");
+    }on StringHttpException catch(err){
+      var errorMessage = err.toString();
+      AlertFail(errorMessage);
+    }catch(e, st){
+      print(st);
+      AlertFail("Something Went Wrong! $e");
+    }
+    setState(() {
+      listDiagnosa = Provider.of<DiagnosaApi>(context, listen: false).listDiagnosa;
+      isLoading = false;
+    });
+  }
+
+  getPref()async {
+    SharedPreferences preferences = await SharedPreferences.getInstance();
+    setState(() {
+      role = preferences.getInt("role");
+      userId = preferences.getInt("id");
+      getData();
+    });
+  }
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    getPref();
+  }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -43,7 +93,7 @@ class _ReportState extends State<Report> {
         body: Container(
           height: context.height(),
           width: context.width(),
-          decoration: BoxDecoration(image: DecorationImage(image:
+          decoration: const BoxDecoration(image: DecorationImage(image:
           AssetImage('assets/images/background.jpg'), fit: BoxFit.cover)),
           child: Stack(
             alignment: AlignmentDirectional.topCenter,
@@ -54,14 +104,16 @@ class _ReportState extends State<Report> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-
-                      ListView.builder(
+                      isLoading
+                      ? Loading()
+                      : ListView.builder(
                         shrinkWrap: true,
-                        itemCount: 4,
-                        itemBuilder: ((BuildContext ctx, int? index){
+                        physics: ScrollPhysics(),
+                        itemCount: listDiagnosa.length,
+                        itemBuilder: ((BuildContext ctx, int index){
                           return GestureDetector(
                             onTap: (){
-                              ReportDetail().launch(context);
+                              ReportDetail(listDiagnosa[index].diagnosaId!).launch(context);
                             },
                             child: Container(
                               padding: EdgeInsets.only(left: 16, right: 16, bottom: 10),
@@ -103,30 +155,19 @@ class _ReportState extends State<Report> {
                                         : Colors.red,
                                   ),
                                 ),
-                                title: RichTextWidget(
-                                  list: [
-                                    TextSpan(
-                                      text: 'Irfan di diagnosa',
+                                title: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      '${listDiagnosa[index].diagnosaId}',
                                       style: GoogleFonts.poppins(
-                                          textStyle: primaryTextStyle(color: Colors.black54, size: 14)
-                                      ),
-                                    ),
-                                    TextSpan(
-                                      text: index == 0
-                                          ? '\t Gangguan Mood'
-                                          : index == 1
-                                          ? '\t Depresi Ringan'
-                                          : index == 2
-                                          ? '\t Depresi Sedang'
-                                          : '\t Depresi Berat',
-                                      style: GoogleFonts.poppins(
-                                          textStyle: boldTextStyle(size: 14, color: black)
+                                          textStyle: boldTextStyle(color:Colors.black54, size: 14)
                                       ),
                                     ),
                                   ],
                                 ),
                                 subtitle: Text(
-                                  '20 November 2023',
+                                  '${listDiagnosa[index].createdAt}',
                                   style: GoogleFonts.poppins(
                                       textStyle: primaryTextStyle(color:Colors.black54, size: 14)
                                   ),

@@ -2,7 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:nb_utils/nb_utils.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import 'package:tugas_kp/Page/Admin/Depresi/Depresi.dart';
 import 'package:tugas_kp/Page/Admin/Gejala/Gejala.dart';
+
+import '../../Model/ModelListDiagnosa.dart';
+import '../../Model/ModelUser.dart';
+import '../../Model/string_http_exception.dart';
+import '../../Provider/Auth/logout.dart';
+import '../../Provider/Diagnosa/diagnosa.dart';
+import '../../Provider/Profile/profile.dart';
+import '../../Provider/base_url.dart';
+import '../../utils/alert.dart';
+import '../../utils/navigatorKey.dart';
+import '../Login.dart';
+import '../User/Report/report.dart';
+import '../User/Report/reportDetail.dart';
+import '../widget/loading.dart';
 
 
 class DashboardAdmin extends StatefulWidget {
@@ -13,6 +29,80 @@ class DashboardAdmin extends StatefulWidget {
 }
 
 class _DashboardAdminState extends State<DashboardAdmin> {
+  bool isLoading = false;
+  ModelUser? user;
+  List<ModelListDiagnosa> listDiagnosa = [];
+  bool isLoading2 = false;
+  int? role;
+  int? userId;
+
+  getDataHistory()async{
+    setState(() {
+      isLoading2 = true;
+    });
+    try{
+      await Provider.of<DiagnosaApi>(context, listen: false).getListDiagnosa(
+          role == 1
+              ? ""
+              : "?created_by=$userId");
+    }on StringHttpException catch(err){
+      var errorMessage = err.toString();
+      AlertFail(errorMessage);
+    }catch(e, st){
+      print(st);
+      AlertFail("Something Went Wrong! $e");
+    }
+    setState(() {
+      listDiagnosa = Provider.of<DiagnosaApi>(context, listen: false).listDiagnosa;
+      isLoading2 = false;
+    });
+  }
+
+  getPref()async {
+    SharedPreferences preferences = await SharedPreferences.getInstance();
+    setState(() {
+      role = preferences.getInt("role");
+      userId = preferences.getInt("id");
+      getDataHistory();
+    });
+  }
+
+  getData()async{
+    setState(() {
+      isLoading = true;
+    });
+    try{
+      user = await Provider.of<ProfileData>(context, listen: false).getUser();
+    }on StringHttpException catch(err){
+      var errorMessage = err.toString();
+      AlertFail(errorMessage);
+    }catch(e, st){
+      print(st);
+      AlertFail("Something Went Wrong! $e");
+    }
+    setState(() {
+      if(user == null){
+        Logout();
+        Navigator.push(
+            NavigationService.navigatorKey.currentContext!,
+            MaterialPageRoute(
+                builder: (context) => const Login()
+            )
+        );
+      }
+      isLoading = false;
+    });
+  }
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    getPref();
+    getData();
+  }
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -66,41 +156,48 @@ class _DashboardAdminState extends State<DashboardAdmin> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Expanded(
-                            child: Row(
-                              children: [
-                                CircleAvatar(
-                                  radius: 25.0,
-                                  backgroundImage:
-                                  NetworkImage('https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=500'),
-                                  backgroundColor: Colors.transparent,
-                                ),
-                                SizedBox(width: 10),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Welcome,',
-                                        style: GoogleFonts.poppins(
-                                            textStyle: TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 14)
-                                        ),
-                                      ),
-                                      Text(
-                                        'Administrator !',
-                                        style: GoogleFonts.poppins(
-                                            textStyle: TextStyle(
-                                                color: Colors.white,
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 14)
-                                        ),
-                                      )
-                                    ],
+                              child: isLoading
+                                  ? const Loading()
+                                  : user == null
+                                  ? Container()
+                                  : Row(
+                                children: [
+                                  CircleAvatar(
+                                    radius: 25.0,
+                                    backgroundImage:
+                                    user!.results!.user!.profileImage == null
+                                        ?  NetworkImage('https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=500')
+                                        :  NetworkImage('${url2}${user!.results!.user!.profileDir}/${user!.results!.user!.profileImage}'),
+
+                                    backgroundColor: Colors.transparent,
                                   ),
-                                )
-                              ],
-                            ),
+                                  SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Welcome,',
+                                          style: GoogleFonts.poppins(
+                                              textStyle: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 14)
+                                          ),
+                                        ),
+                                        Text(
+                                          '${user!.results!.user!.name} !',
+                                          style: GoogleFonts.poppins(
+                                              textStyle: TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 14)
+                                          ),
+                                        )
+                                      ],
+                                    ),
+                                  )
+                                ],
+                              )
                           ),
                           Text(
                             '${DateFormat('MMM d, yyyy').format(DateTime.now())}',
@@ -139,7 +236,7 @@ class _DashboardAdminState extends State<DashboardAdmin> {
                       children: [
                         GestureDetector(
                           onTap: (){
-
+                            Depresi().launch(context);
                           },
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -204,6 +301,9 @@ class _DashboardAdminState extends State<DashboardAdmin> {
                           ),
                         ),
                         GestureDetector(
+                          onTap: (){
+                            Report().launch(context);
+                          },
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
@@ -221,36 +321,6 @@ class _DashboardAdminState extends State<DashboardAdmin> {
                               8.height,
                               Text(
                                 'Laporan',
-                                style: GoogleFonts.poppins(
-                                    textStyle:  secondaryTextStyle(
-                                      size: 14,
-                                      color: Colors.grey,
-                                    )
-                                ),
-                                textAlign: TextAlign.center,
-                                maxLines: 1,
-                              ),
-                            ],
-                          ),
-                        ),
-                        GestureDetector(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Container(
-                                width: 80,
-                                height: 80,
-                                alignment: Alignment.center,
-                                decoration: boxDecorationRoundedWithShadow(
-                                  16,
-                                  backgroundColor: context.cardColor,
-                                  shadowColor: Colors.grey.withOpacity(0.2),
-                                ),
-                                child: ImageIcon(AssetImage('assets/images/wa_ticket.png'), size: 30, color:Color(0xFF26C884)),
-                              ),
-                              8.height,
-                              Text(
-                                'Tambah Admin',
                                 style: GoogleFonts.poppins(
                                     textStyle:  secondaryTextStyle(
                                       size: 14,
@@ -283,102 +353,82 @@ class _DashboardAdminState extends State<DashboardAdmin> {
                 ),
               ),
               SizedBox(height: 20),
-              Column(
-                children: [
-                  Container(
-                    padding: EdgeInsets.only(left: 16, right: 16, bottom: 10),
-                    margin: EdgeInsets.only(bottom: 16, left: 16, right: 16),
-                    decoration: boxDecorationRoundedWithShadow(16, backgroundColor: context.cardColor),
-                    child: ListTile(
-                      tileColor: Colors.green,
-                      enabled: true,
-                      contentPadding: EdgeInsets.zero,
-                      leading: Container(
-                        height: 50,
-                        width: 50,
-                        alignment: Alignment.center,
-                        decoration: boxDecorationWithRoundedCorners(
-                          boxShape: BoxShape.circle,
-                          backgroundColor: Colors.green.withOpacity(0.1),
-                        ),
-                        child: ImageIcon(
-                          AssetImage('assets/images/wa_ticket.png'),
-                          size: 24,
-                          color: Colors.green,
-                        ),
-                      ),
-                      title: RichTextWidget(
-                        list: [
-                          TextSpan(
-                            text: 'Administrator menambahkan',
-                            style: GoogleFonts.poppins(
-                              textStyle: primaryTextStyle(color: Colors.black54, size: 14)
-                            ),
+              isLoading2
+                  ? Loading()
+                  : ListView.builder(
+                shrinkWrap: true,
+                physics: ScrollPhysics(),
+                itemCount: listDiagnosa.isEmpty
+                    ? 0
+                    : listDiagnosa.length <= 5
+                    ? listDiagnosa.length
+                    : 5,
+                itemBuilder: ((BuildContext ctx, int index){
+                  return GestureDetector(
+                    onTap: (){
+                      ReportDetail(listDiagnosa[index].diagnosaId!).launch(context);
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.only(left: 16, right: 16, bottom: 10),
+                      margin: const EdgeInsets.only(bottom: 16, left: 16, right: 16),
+                      decoration: boxDecorationRoundedWithShadow(16, backgroundColor: context.cardColor),
+                      child: ListTile(
+                        tileColor: index == 0
+                            ? Colors.green
+                            : index == 1
+                            ? Colors.orange
+                            : index == 2
+                            ? Colors.red
+                            : Colors.red,
+                        enabled: true,
+                        contentPadding: EdgeInsets.zero,
+                        leading: Container(
+                          height: 50,
+                          width: 50,
+                          alignment: Alignment.center,
+                          decoration: boxDecorationWithRoundedCorners(
+                            boxShape: BoxShape.circle,
+                            backgroundColor: index == 0
+                                ? Colors.green.withOpacity(0.1)
+                                : index == 1
+                                ? Colors.orange.withOpacity(0.1)
+                                : index == 2
+                                ? Colors.red.withOpacity(0.1)
+                                : Colors.red.withOpacity(0.1),
                           ),
-                          TextSpan(
-                            text: '\t Gejala',
-                            style: GoogleFonts.poppins(
-                              textStyle: boldTextStyle(size: 14, color: black)
-                            ),
+                          child: ImageIcon(
+                            AssetImage('assets/images/wa_ticket.png'),
+                            size: 24,
+                            color: index == 0
+                                ? Colors.green
+                                : index == 1
+                                ? Colors.orange
+                                : index == 2
+                                ? Colors.red
+                                : Colors.red,
                           ),
-                        ],
-                      ),
-                      subtitle: Text(
-                        '20 November 2023',
-                        style: GoogleFonts.poppins(
-                          textStyle: primaryTextStyle(color:Colors.black54, size: 14)
+                        ),
+                        title: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${listDiagnosa[index].diagnosaId}',
+                              style: GoogleFonts.poppins(
+                                  textStyle: boldTextStyle(color:Colors.black54, size: 14)
+                              ),
+                            ),
+                          ],
+                        ),
+                        subtitle: Text(
+                          '${listDiagnosa[index].createdAt}',
+                          style: GoogleFonts.poppins(
+                              textStyle: primaryTextStyle(color:Colors.black54, size: 14)
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  Container(
-                    padding: EdgeInsets.only(left: 16, right: 16, bottom: 10),
-                    margin: EdgeInsets.only(bottom: 16, left: 16, right: 16),
-                    decoration: boxDecorationRoundedWithShadow(16, backgroundColor: context.cardColor),
-                    child: ListTile(
-                      tileColor: Colors.orange,
-                      enabled: true,
-                      contentPadding: EdgeInsets.zero,
-                      leading: Container(
-                        height: 50,
-                        width: 50,
-                        alignment: Alignment.center,
-                        decoration: boxDecorationWithRoundedCorners(
-                          boxShape: BoxShape.circle,
-                          backgroundColor: Colors.orange.withOpacity(0.1),
-                        ),
-                        child: ImageIcon(
-                          AssetImage('assets/images/wa_ticket.png'),
-                          size: 24,
-                          color: Colors.orange,
-                        ),
-                      ),
-                      title: RichTextWidget(
-                        overflow:TextOverflow.clip,
-                        list: [
-                          TextSpan(
-                            text: 'Administrator menambahkan',
-                            style: GoogleFonts.poppins(
-                              textStyle: primaryTextStyle(color: Colors.black54, size: 14)
-                            ),
-                          ),
-                          TextSpan(
-                            text: '\t account admin ',
-                            style: GoogleFonts.poppins(
-                              textStyle: boldTextStyle(size: 14, color:black)
-                            ),
-                          ),
-                        ],
-                      ),
-                      subtitle: Text(
-                        '19 November 2023',
-                        style: GoogleFonts.poppins(
-                          textStyle: primaryTextStyle(color:Colors.black54, size: 14)
-                        ),
-                      ),
-                    ),
-                  )
-                ],
+                  );
+                }),
               )
             ],
           ),

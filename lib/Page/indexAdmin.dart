@@ -7,7 +7,8 @@ import '../utils/widget/WAColors.dart';
 
 
 class IndextAdmin extends StatefulWidget {
-  const IndextAdmin({Key? key}) : super(key: key);
+  final int selectedIndext;
+  const IndextAdmin(this.selectedIndext, { Key? key}) : super(key: key);
 
   @override
   State<IndextAdmin> createState() => _IndextAdminState();
@@ -19,6 +20,23 @@ class _IndextAdminState extends State<IndextAdmin> {
     DashboardAdmin(),
     Profile(),
   ];
+
+  set(){
+    setState(() {
+      _selectedIndex = widget.selectedIndext!;
+      print(widget.selectedIndext);
+    });
+  }
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    if(widget.selectedIndext != null){
+      set();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

@@ -2,8 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:nb_utils/nb_utils.dart';
+import 'package:provider/provider.dart';
+import 'package:tugas_kp/Model/ModelUser.dart';
 import 'package:tugas_kp/Page/User/Diagnosa/diagnosa.dart';
 import 'package:tugas_kp/Page/User/Report/report.dart';
+import 'package:tugas_kp/Page/widget/loading.dart';
+import 'package:tugas_kp/Provider/Profile/profile.dart';
+import 'package:tugas_kp/Provider/base_url.dart';
+
+import '../../Model/ModelListDiagnosa.dart';
+import '../../Model/string_http_exception.dart';
+import '../../Provider/Auth/logout.dart';
+import '../../Provider/Diagnosa/diagnosa.dart';
+import '../../utils/alert.dart';
+import '../../utils/navigatorKey.dart';
+import '../Login.dart';
+import 'Report/reportDetail.dart';
 
 
 class DashboardUser extends StatefulWidget {
@@ -14,14 +28,68 @@ class DashboardUser extends StatefulWidget {
 }
 
 class _DashboardUserState extends State<DashboardUser> {
-  String? name;
-  String? email;
+  bool isLoading = false;
+  ModelUser? user;
+  List<ModelListDiagnosa> listDiagnosa = [];
+  bool isLoading2 = false;
+  int? role;
+  int? userId;
 
-  getPref() async {
+  getDataHistory()async{
+    setState(() {
+      isLoading2 = true;
+    });
+    try{
+      await Provider.of<DiagnosaApi>(context, listen: false).getListDiagnosa(
+          role == 1
+              ? ""
+              : "?created_by=$userId");
+    }on StringHttpException catch(err){
+      var errorMessage = err.toString();
+      AlertFail(errorMessage);
+    }catch(e, st){
+      print(st);
+      AlertFail("Something Went Wrong! $e");
+    }
+    setState(() {
+      listDiagnosa = Provider.of<DiagnosaApi>(context, listen: false).listDiagnosa;
+      isLoading2 = false;
+    });
+  }
+
+  getPref()async {
     SharedPreferences preferences = await SharedPreferences.getInstance();
     setState(() {
-      email = preferences.getString('email')?? "";
-      name = preferences.getString('name')?? "";
+      role = preferences.getInt("role");
+      userId = preferences.getInt("id");
+      getDataHistory();
+    });
+  }
+
+  getData()async{
+    setState(() {
+      isLoading = true;
+    });
+    try{
+      user = await Provider.of<ProfileData>(context, listen: false).getUser();
+    }on StringHttpException catch(err){
+      var errorMessage = err.toString();
+      AlertFail(errorMessage);
+    }catch(e, st){
+      print(st);
+      AlertFail("Something Went Wrong! $e");
+    }
+    setState(() {
+      if(user == null){
+        Logout();
+        Navigator.push(
+            NavigationService.navigatorKey.currentContext!,
+            MaterialPageRoute(
+                builder: (context) => const Login()
+            )
+        );
+      }
+      isLoading = false;
     });
   }
 
@@ -29,6 +97,7 @@ class _DashboardUserState extends State<DashboardUser> {
   void initState() {
     // TODO: implement initState
     super.initState();
+    getData();
     getPref();
   }
 
@@ -52,7 +121,7 @@ class _DashboardUserState extends State<DashboardUser> {
                     child: Text(
                       'Diagnosa Depresi',
                       style: GoogleFonts.poppins(
-                          textStyle: TextStyle(
+                          textStyle:const TextStyle(
                               color: Colors.grey,
                               fontWeight: FontWeight.bold,
                               fontSize: 20)
@@ -62,7 +131,7 @@ class _DashboardUserState extends State<DashboardUser> {
                   Container(
                       padding:
                       const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
-                      margin: EdgeInsets.only(top: 20, bottom: 20, right: 15, left: 15),
+                      margin: const EdgeInsets.only(top: 20, bottom: 20, right: 15, left: 15),
                       decoration: BoxDecoration(
                         color: Color(0xFF6C56F9),
                         borderRadius: BorderRadius.circular(20),
@@ -85,12 +154,19 @@ class _DashboardUserState extends State<DashboardUser> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Expanded(
-                                child: Row(
+                                child: isLoading
+                                ? const Loading()
+                                : user == null
+                                  ? Container()
+                                  : Row(
                                   children: [
                                     CircleAvatar(
                                       radius: 25.0,
                                       backgroundImage:
-                                      NetworkImage('https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=500'),
+                                      user!.results!.user!.profileImage == null
+                                          ?  NetworkImage('https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=500')
+                                          :  NetworkImage('${url2}${user!.results!.user!.profileDir}/${user!.results!.user!.profileImage}'),
+
                                       backgroundColor: Colors.transparent,
                                     ),
                                     SizedBox(width: 10),
@@ -107,7 +183,7 @@ class _DashboardUserState extends State<DashboardUser> {
                                             ),
                                           ),
                                           Text(
-                                            '$name !',
+                                            '${user!.results!.user!.name} !',
                                             style: GoogleFonts.poppins(
                                                 textStyle: TextStyle(
                                                     color: Colors.white,
@@ -119,7 +195,7 @@ class _DashboardUserState extends State<DashboardUser> {
                                       ),
                                     )
                                   ],
-                                ),
+                                )
                               ),
                               Text(
                                 '${DateFormat('MMM d, yyyy').format(DateTime.now())}',
@@ -205,7 +281,7 @@ class _DashboardUserState extends State<DashboardUser> {
                                       backgroundColor: context.cardColor,
                                       shadowColor: Colors.grey.withOpacity(0.2),
                                     ),
-                                    child: ImageIcon(AssetImage('assets/images/wa_ticket.png'), size: 30, color:Color(0xFFFF7426)),
+                                    child: const ImageIcon(AssetImage('assets/images/wa_ticket.png'), size: 30, color:Color(0xFFFF7426)),
                                   ),
                                   8.height,
                                   Text(
@@ -226,117 +302,121 @@ class _DashboardUserState extends State<DashboardUser> {
                         ).paddingAll(16)
                     ),
                   ),
-                  Padding(
-                    padding: EdgeInsets.only(
-                        top: 20, left: 15
-                    ),
-                    child: Text(
-                      'History Terakhir',
-                      style: GoogleFonts.poppins(
-                          textStyle: TextStyle(
-                              color: Colors.grey,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18)
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 20),
-                  Column(
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Container(
-                        padding: EdgeInsets.only(left: 16, right: 16, bottom: 10),
-                        margin: EdgeInsets.only(bottom: 16, left: 16, right: 16),
-                        decoration: boxDecorationRoundedWithShadow(16, backgroundColor: context.cardColor),
-                        child: ListTile(
-                          tileColor: Colors.green,
-                          enabled: true,
-                          contentPadding: EdgeInsets.zero,
-                          leading: Container(
-                            height: 50,
-                            width: 50,
-                            alignment: Alignment.center,
-                            decoration: boxDecorationWithRoundedCorners(
-                              boxShape: BoxShape.circle,
-                              backgroundColor: Colors.green.withOpacity(0.1),
-                            ),
-                            child: ImageIcon(
-                              AssetImage('assets/images/wa_ticket.png'),
-                              size: 24,
-                              color: Colors.green,
-                            ),
-                          ),
-                          title: RichTextWidget(
-                            list: [
-                              TextSpan(
-                                text: 'Irfan di diagnosa',
-                                style: GoogleFonts.poppins(
-                                    textStyle: primaryTextStyle(color: Colors.black54, size: 14)
-                                ),
-                              ),
-                              TextSpan(
-                                text: '\t Gangguan Mood',
-                                style: GoogleFonts.poppins(
-                                    textStyle: boldTextStyle(size: 14, color: black)
-                                ),
-                              ),
-                            ],
-                          ),
-                          subtitle: Text(
-                            '20 November 2023',
-                            style: GoogleFonts.poppins(
-                                textStyle: primaryTextStyle(color:Colors.black54, size: 14)
-                            ),
+                      Padding(
+                        padding: EdgeInsets.only(
+                            top: 20, left: 15
+                        ),
+                        child: Text(
+                          'History Terakhir',
+                          style: GoogleFonts.poppins(
+                              textStyle: TextStyle(
+                                  color: Colors.grey,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18)
                           ),
                         ),
                       ),
-                      Container(
-                        padding: EdgeInsets.only(left: 16, right: 16, bottom: 10),
-                        margin: EdgeInsets.only(bottom: 16, left: 16, right: 16),
-                        decoration: boxDecorationRoundedWithShadow(16, backgroundColor: context.cardColor),
-                        child: ListTile(
-                          tileColor: Colors.orange,
-                          enabled: true,
-                          contentPadding: EdgeInsets.zero,
-                          leading: Container(
-                            height: 50,
-                            width: 50,
-                            alignment: Alignment.center,
-                            decoration: boxDecorationWithRoundedCorners(
-                              boxShape: BoxShape.circle,
-                              backgroundColor: Colors.orange.withOpacity(0.1),
-                            ),
-                            child: ImageIcon(
-                              AssetImage('assets/images/wa_ticket.png'),
-                              size: 24,
-                              color: Colors.orange,
-                            ),
+                      GestureDetector(
+                        onTap: (){
+                          Report().launch(context);
+                        },
+                        child: Padding(
+                          padding: EdgeInsets.only(
+                              top: 20, left: 15, right: 15
                           ),
-                          title: RichTextWidget(
-                            list: [
-                              TextSpan(
-                                text: 'Irfan di diagnosa',
-                                style: GoogleFonts.poppins(
-                                    textStyle: primaryTextStyle(color: Colors.black54, size: 14)
-                                ),
-                              ),
-                              TextSpan(
-                                text: '\t Depresi Ringan',
-                                style: GoogleFonts.poppins(
-                                    textStyle: boldTextStyle(size: 14, color: black)
-                                ),
-                              ),
-                            ],
-                          ),
-                          subtitle: Text(
-                            '19 November 2023',
+                          child: Text(
+                            'All',
                             style: GoogleFonts.poppins(
-                                textStyle: primaryTextStyle(color:Colors.black54, size: 14)
+                                textStyle: TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: 18)
                             ),
                           ),
                         ),
                       )
                     ],
-                  )
+                  ),
+                  SizedBox(height: 20),
+                  isLoading2
+                      ? Loading()
+                      : ListView.builder(
+                            shrinkWrap: true,
+                            physics: ScrollPhysics(),
+                            itemCount: listDiagnosa.isEmpty
+                                        ? 0
+                                        : listDiagnosa.length <= 5
+                                          ? listDiagnosa.length
+                                          : 5,
+                            itemBuilder: ((BuildContext ctx, int index){
+                              return GestureDetector(
+                                onTap: (){
+                                  ReportDetail(listDiagnosa[index].diagnosaId!).launch(context);
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.only(left: 16, right: 16, bottom: 10),
+                                  margin: const EdgeInsets.only(bottom: 16, left: 16, right: 16),
+                                  decoration: boxDecorationRoundedWithShadow(16, backgroundColor: context.cardColor),
+                                  child: ListTile(
+                                    tileColor: index == 0
+                                        ? Colors.green
+                                        : index == 1
+                                        ? Colors.orange
+                                        : index == 2
+                                        ? Colors.red
+                                        : Colors.red,
+                                    enabled: true,
+                                    contentPadding: EdgeInsets.zero,
+                                    leading: Container(
+                                      height: 50,
+                                      width: 50,
+                                      alignment: Alignment.center,
+                                      decoration: boxDecorationWithRoundedCorners(
+                                        boxShape: BoxShape.circle,
+                                        backgroundColor: index == 0
+                                            ? Colors.green.withOpacity(0.1)
+                                            : index == 1
+                                            ? Colors.orange.withOpacity(0.1)
+                                            : index == 2
+                                            ? Colors.red.withOpacity(0.1)
+                                            : Colors.red.withOpacity(0.1),
+                                      ),
+                                      child: ImageIcon(
+                                        AssetImage('assets/images/wa_ticket.png'),
+                                        size: 24,
+                                        color: index == 0
+                                            ? Colors.green
+                                            : index == 1
+                                            ? Colors.orange
+                                            : index == 2
+                                            ? Colors.red
+                                            : Colors.red,
+                                      ),
+                                    ),
+                                    title: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          '${listDiagnosa[index].diagnosaId}',
+                                          style: GoogleFonts.poppins(
+                                              textStyle: boldTextStyle(color:Colors.black54, size: 14)
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    subtitle: Text(
+                                      '${listDiagnosa[index].createdAt}',
+                                      style: GoogleFonts.poppins(
+                                          textStyle: primaryTextStyle(color:Colors.black54, size: 14)
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }),
+                          )
                 ],
               ),
             )

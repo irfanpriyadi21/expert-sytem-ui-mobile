@@ -1,9 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:nb_utils/nb_utils.dart';
+import 'package:provider/provider.dart';
 import 'package:tugas_kp/Page/Login.dart';
 import 'package:tugas_kp/Page/Profile/editProfile.dart';
 import 'package:tugas_kp/Provider/Auth/logout.dart';
+
+import '../../Model/ModelUser.dart';
+import '../../Model/string_http_exception.dart';
+import '../../Provider/Profile/profile.dart';
+import '../../Provider/base_url.dart';
+import '../../utils/alert.dart';
+import '../../utils/navigatorKey.dart';
+import '../widget/loading.dart';
 
 class Profile extends StatefulWidget {
   const Profile({Key? key}) : super(key: key);
@@ -13,23 +22,53 @@ class Profile extends StatefulWidget {
 }
 
 class _ProfileState extends State<Profile> {
-  String? name;
-  String? email;
-
-  getPref() async {
-    SharedPreferences preferences = await SharedPreferences.getInstance();
+  bool isLoading = false;
+  ModelUser? user;
+  // String? name;
+  // String? email;
+  //
+  // getPref() async {
+  //   SharedPreferences preferences = await SharedPreferences.getInstance();
+  //   setState(() {
+  //     email = preferences.getString('email')?? "";
+  //     name = preferences.getString('name')?? "";
+  //   });
+  // }
+  getData()async{
     setState(() {
-      email = preferences.getString('email')?? "";
-      name = preferences.getString('name')?? "";
+      isLoading = true;
+    });
+    try{
+      user = await Provider.of<ProfileData>(context, listen: false).getUser();
+    }on StringHttpException catch(err){
+      var errorMessage = err.toString();
+      AlertFail(errorMessage);
+    }catch(e, st){
+      print(st);
+      AlertFail("Something Went Wrong! $e");
+    }
+    setState(() {
+      if(user == null){
+        Logout();
+        Navigator.push(
+            NavigationService.navigatorKey.currentContext!,
+            MaterialPageRoute(
+                builder: (context) => const Login()
+            )
+        );
+      }
+      isLoading = false;
     });
   }
+
 
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
-    getPref();
+    getData();
   }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -53,22 +92,41 @@ class _ProfileState extends State<Profile> {
             image: DecorationImage(image: AssetImage('assets/images/background.jpg'), fit: BoxFit.cover),
           ),
           child: SingleChildScrollView(
-            child: Column(
+            child:
+            isLoading
+                ? Loading()
+                : user == null
+                ? Container()
+                :Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-              CircleAvatar(
-                  radius: 40.0,
+                CircleAvatar(
+                  radius: 30.0,
                   backgroundImage:
-                  NetworkImage('https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=500'),
+                  user!.results!.user!.profileImage == null
+                      ?  NetworkImage('https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=500')
+                      :  NetworkImage('${url2}${user!.results!.user!.profileDir}/${user!.results!.user!.profileImage}'),
+
                   backgroundColor: Colors.transparent,
                 ),
                 16.height,
-                Text('$name', style: GoogleFonts.poppins(
-                  textStyle: boldTextStyle(color: Colors.grey)
-                )),
-                Text('$email', style: GoogleFonts.poppins(
-                    textStyle: secondaryTextStyle(color: Colors.grey)
-                )),
+                Text(
+                  '${user!.results!.user!.name} !',
+                  style: GoogleFonts.poppins(
+                      textStyle: TextStyle(
+                          color: Colors.grey,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14)
+                  ),
+                ),
+                Text(
+                  '${user!.results!.user!.email} !',
+                  style: GoogleFonts.poppins(
+                      textStyle: TextStyle(
+                          color: Colors.grey,
+                          fontSize: 14)
+                  ),
+                ),
                 30.height,
                 SettingItemWidget(
                     title: 'Edit Profile',

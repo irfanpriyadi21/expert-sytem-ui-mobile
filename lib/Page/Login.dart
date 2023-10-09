@@ -32,11 +32,13 @@ class _LoginState extends State<Login> {
   FocusNode emailFocusNode = FocusNode();
   FocusNode passWordFocusNode = FocusNode();
   bool isLoading = false;
+  int? role;
 
   getPref() async {
     SharedPreferences preferences = await SharedPreferences.getInstance();
     setState(() {
       String status = preferences.getString('loginStatus')?? "";
+      role = preferences.getInt('role');
       _loginStatus = status == 'success'
           ? LoginStatus.signIn
           : LoginStatus.notSignIn;
@@ -69,6 +71,9 @@ class _LoginState extends State<Login> {
       bool login = Provider
           .of<Auth>(context, listen: false)
           .login!;
+      role = Provider
+          .of<Auth>(context, listen: false)
+          .role!;
       if (login == true) {
         _loginStatus = LoginStatus.signIn;
       }
@@ -251,7 +256,9 @@ class _LoginState extends State<Login> {
           ),
         );
       case LoginStatus.signIn :
-        return IndexUser(0);
+        return role == 1
+              ? IndextAdmin(0)
+              : IndexUser(0);
         break;
     }
   }

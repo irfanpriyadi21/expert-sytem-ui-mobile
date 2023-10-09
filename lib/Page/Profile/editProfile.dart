@@ -1,9 +1,28 @@
-import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:nb_utils/nb_utils.dart';
+import 'dart:async';
+import 'dart:io';
 
+
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:nb_utils/nb_utils.dart';
+import 'package:page_transition/page_transition.dart';
+import 'package:provider/provider.dart';
+import 'package:tugas_kp/Page/Profile/profile.dart';
+import 'package:tugas_kp/Page/indexAdmin.dart';
+import 'package:tugas_kp/Page/indexUser.dart';
+import '../../Provider/base_url.dart';
+import '../../Model/ModelUser.dart';
+import '../../Model/string_http_exception.dart';
+import '../../Provider/Auth/logout.dart';
+import '../../Provider/Profile/profile.dart';
+import '../../utils/alert.dart';
+import '../../utils/navigatorKey.dart';
 import '../../utils/widget/WAColors.dart';
 import '../../utils/widget/WAWidgets.dart';
+import '../Login.dart';
+import '../widget/loading.dart';
 
 
 class EditProfile extends StatefulWidget {
@@ -18,6 +37,103 @@ class _EditProfileState extends State<EditProfile> {
   var email = TextEditingController();
   FocusNode nameF = FocusNode();
   FocusNode emailF = FocusNode();
+  bool isLoading = false;
+  ModelUser? user;
+  File? image;
+  int? role;
+
+  Future pickImage() async {
+    try {
+      final image = await ImagePicker().pickImage(source: ImageSource.gallery);
+      if(image == null) return;
+      final imageTemp = File(image.path);
+      setState(() => this.image = imageTemp);
+    } on PlatformException catch(e) {
+      print('Failed to pick image: $e');
+    }
+  }
+
+  getData()async{
+    setState(() {
+      isLoading = true;
+    });
+    try{
+      user = await Provider.of<ProfileData>(context, listen: false).getUser();
+    }on StringHttpException catch(err){
+      var errorMessage = err.toString();
+      AlertFail(errorMessage);
+    }catch(e, st){
+      print(st);
+      AlertFail("Something Went Wrong! $e");
+    }
+    setState(() {
+      if(user == null){
+        Logout();
+        Navigator.push(
+            NavigationService.navigatorKey.currentContext!,
+            MaterialPageRoute(
+                builder: (context) => const Login()
+            )
+        );
+      }else{
+        name.text = user!.results!.user!.name!;
+        email.text = user!.results!.user!.email!;
+        isLoading = false;
+      }
+
+    });
+  }
+
+  editProfile() async {
+    setState(() {
+      isLoading = true;
+    });
+    try {
+      await Provider.of<ProfileData>(context, listen: false).editProf(
+          name.value.text, email.value.text, image);
+    } on StringHttpException catch (e) {
+      var errorMessage = e.toString();
+      AlertFail(errorMessage);
+    } catch (error, s) {
+      print(s);
+      AlertFail("Edit Profile Gagal !! $error");
+    }
+    setState(() {
+      isLoading = false;
+      bool register = Provider
+          .of<ProfileData>(context, listen: false)
+          .editProfile!;
+      if(register){
+        AlertSucess("Berhasil Menyimpan Data !");
+        Timer(Duration(seconds: 2), (){
+          Navigator.pushReplacement(
+              context,
+              PageTransition(
+                  type: PageTransitionType.fade,
+                  child: role == 1
+                        ?  IndextAdmin(1)
+                        :  IndexUser(1)
+              )
+          );
+        });
+      }
+
+    });
+  }
+
+  getPref() async {
+    SharedPreferences preferences = await SharedPreferences.getInstance();
+    setState(() {
+      role = preferences.getInt("role");
+    });
+  }
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    getData();
+  }
 
 
   @override
@@ -108,19 +224,17 @@ class _EditProfileState extends State<EditProfile> {
                         ),
                       ),
                       16.height,
-                      AppButton(
+                      isLoading
+                      ? Loading()
+                      : AppButton(
                         color: WAPrimaryColor,
                         width: context.width(),
                         child: Text('Simpan',
                             style: GoogleFonts.poppins(
-                              textStyle: boldTextStyle(color: Colors.white)
+                                textStyle: boldTextStyle(color: Colors.white)
                             ) ),
                         onTap: () {
-                          // if (widget.isEditProfile) {
-                          //   finish(context);
-                          // } else {
-                          //   WAAddCredentialScreen().launch(context);
-                          // }
+                         editProfile();
                         },
                       ).cornerRadiusWithClipRRect(30).paddingOnly(left: context.width() * 0.1, right: context.width() * 0.1),
                     ],
@@ -130,19 +244,38 @@ class _EditProfileState extends State<EditProfile> {
               Stack(
                 alignment: AlignmentDirectional.bottomEnd,
                 children: [
-                  Container(
-                    margin: EdgeInsets.only(right: 8),
-                    height: 110,
-                    width: 110,
-                    decoration: BoxDecoration(color: WAPrimaryColor, shape: BoxShape.circle),
-                    child: Icon(Icons.person, color: white, size: 60),
+                  image == null
+                  ? CircleAvatar(
+                    radius: 60.0,
+                    backgroundImage:user == null
+                        ? NetworkImage('https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=500')
+                        :  user!.results!.user!.profileImage == null
+                        ? NetworkImage('https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=500')
+                        : NetworkImage('${url2}${user!.results!.user!.profileDir}/${user!.results!.user!.profileImage}'),
+                    backgroundColor: Colors.transparent,
+                  )
+                  : CircleAvatar(
+                    backgroundColor: Colors.transparent,
+                    radius: 60,
+                    child: CircleAvatar(
+                      radius: 60,
+                      backgroundImage: Image.file(
+                        image!,
+                        fit: BoxFit.cover,
+                      ).image,
+                    ),
                   ),
                   Positioned(
                     bottom: 16,
-                    child: Container(
-                      padding: EdgeInsets.all(6),
-                      child: Icon(Icons.edit, color: Colors.white, size: 20),
-                      decoration: BoxDecoration(color: WAAccentColor, shape: BoxShape.circle),
+                    child: GestureDetector(
+                      onTap: (){
+                        pickImage();
+                      },
+                      child: Container(
+                        padding: EdgeInsets.all(6),
+                        child: Icon(Icons.edit, color: Colors.white, size: 20),
+                        decoration: BoxDecoration(color: WAAccentColor, shape: BoxShape.circle),
+                      ),
                     ),
                   ),
                 ],
