@@ -26,6 +26,7 @@ class _DepresiState extends State<Depresi> {
   FocusNode kdF = FocusNode();
   FocusNode gejalaF = FocusNode();
   bool isLoading = false;
+  bool isLoading2 = false;
   List<ModelListDepresi> deps = [];
 
   getData()async{
@@ -45,6 +46,219 @@ class _DepresiState extends State<Depresi> {
       deps = Provider.of<DepresiApi>(context, listen: false).depresi;
       isLoading = false;
     });
+  }
+
+  deleteData(String id)async{
+    setState(() {
+      isLoading = true;
+    });
+    try{
+      await Provider.of<DepresiApi>(context, listen: false).deleteDataDepresi(id);
+    }on StringHttpException catch(err){
+      var errorMessage = err.toString();
+      AlertFail(errorMessage);
+    }catch(e, st){
+      print(st);
+      AlertFail("Something Went Wrong! $e");
+    }
+    setState(() {
+      bool status = Provider.of<DepresiApi>(context, listen: false).deleteDepresi!;
+      if(status){
+        Navigator.pop(context);
+        AlertSucess("Data Berhasil Dihapus !");
+        Future.delayed(const Duration(seconds: 2)).then((val) {
+          Navigator.pop(context);
+          getData();
+        });
+      }
+      isLoading = false;
+    });
+  }
+
+  dialogDelete(String name, id) {
+    return showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text(
+                'Delete $name ?',
+                style: GoogleFonts.poppins(
+                  textStyle: TextStyle(
+                      fontSize: 16,
+                      color: Colors.black
+                  ),
+                )
+            ),
+            actions: <Widget>[
+              TextButton(
+                child: Text(
+                    'Cancel',
+                    style: GoogleFonts.poppins(
+                      textStyle: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.red
+                      ),
+                    )
+                ),
+                onPressed: () {
+                  Navigator.of(context).pop(false);
+                },
+              ),
+              TextButton(
+                child: Text(
+                    'Ok',
+                    style: GoogleFonts.poppins(
+                      textStyle: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue
+                      ),
+                    )
+                ),
+                onPressed:(){
+                  deleteData(id.toString());
+                },
+              ),
+            ],
+          );
+        });
+  }
+
+  postData(String id)async{
+    setState(() {
+      isLoading2 = true;
+    });
+    try{
+      await Provider.of<DepresiApi>(context, listen: false).postDataDepresi(
+          kdDepresi.text, nameDepresi.text, id);
+    }on StringHttpException catch(err){
+      var errorMessage = err.toString();
+      AlertFail(errorMessage);
+    }catch(e, st){
+      print(st);
+      AlertFail("Something Went Wrong! $e");
+    }
+    setState(() {
+      bool status = Provider.of<DepresiApi>(context, listen: false).postDepresi!;
+      if(status){
+        Navigator.pop(context);
+        AlertSucess("Data Berhasil Disimpan !");
+        Future.delayed(const Duration(seconds: 2)).then((val) {
+          Navigator.pop(context);
+          getData();
+        });
+      }
+      isLoading2 = false;
+    });
+  }
+
+  dialog(id){
+    showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(20.0),
+          ),
+        ),
+        builder: (context) {
+          return Padding(
+            padding: MediaQuery.of(context).viewInsets,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Container(
+                  padding: const EdgeInsets.only(right: 15, left: 15, top: 10, bottom: 10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(
+                        child: Text('Input Depresi',
+                          style: GoogleFonts.poppins(
+                              textStyle: boldTextStyle(color: Colors.grey)
+                          ),
+                        ),
+                      ),
+                      20.height,
+                      Text('Kode Depresi',
+                          style: GoogleFonts.poppins(
+                              textStyle: boldTextStyle(size: 14, color: Colors.grey)
+                          )
+                      ),
+                      8.height,
+                      AppTextField(
+                        decoration: waInputDecoration(
+                          hint: 'Enter Kode Depresi',
+                        ),
+                        textFieldType: TextFieldType.NAME,
+                        keyboardType: TextInputType.name,
+                        controller: kdDepresi,
+                        focus: kdF,
+                      ),
+                      16.height,
+                      Text('Nama Depresi',
+                          style: GoogleFonts.poppins(
+                              textStyle: boldTextStyle(size: 14, color: Colors.grey)
+                          )
+                      ),
+                      8.height,
+                      AppTextField(
+                        decoration: waInputDecoration(
+                          hint: 'Enter Depresi',
+                        ),
+                        textFieldType: TextFieldType.NAME,
+                        keyboardType: TextInputType.name,
+                        controller: nameDepresi,
+                        focus: gejalaF,
+                      ),
+                      40.height,
+                      Row(
+                        children: [
+                          Expanded(
+                            child: AppButton(
+                              color: Colors.grey,
+                              width: context.width(),
+                              child: Text('Cancel',
+                                  style: GoogleFonts.poppins(
+                                      textStyle: boldTextStyle(color: Colors.white)
+                                  ) ),
+                              onTap: () {
+                                Navigator.pop(context);
+                              },
+                            ).cornerRadiusWithClipRRect(10).paddingOnly(left: context.width() * 0.1, right: context.width() * 0.1),
+                          ),
+                          const SizedBox(width: 10),
+                          isLoading
+                          ? Loading()
+                          : Expanded(
+                            child: AppButton(
+                              color: WAPrimaryColor,
+                              width: context.width(),
+                              child: Text('Simpan',
+                                  style: GoogleFonts.poppins(
+                                      textStyle: boldTextStyle(color: Colors.white)
+                                  ) ),
+                              onTap: () {
+                                if (kdDepresi.text.isEmpty || nameDepresi.text.isEmpty) {
+                                  AlertFail("Lengkapi Data !!");
+                                } else {
+                                  postData(id);
+                                }
+                              },
+                            ).cornerRadiusWithClipRRect(10).paddingOnly(left: context.width() * 0.1, right: context.width() * 0.1),
+                          )
+                        ],
+                      )
+                    ],
+                  ),
+                )
+
+              ],
+            ),
+          );
+        });
   }
 
 
@@ -94,109 +308,9 @@ class _DepresiState extends State<Depresi> {
                   ),
                 ),
                 onTap: (){
-                  showModalBottomSheet(
-                      context: context,
-                      isScrollControlled: true,
-                      shape: const RoundedRectangleBorder(
-                        borderRadius: BorderRadius.vertical(
-                          top: Radius.circular(20.0),
-                        ),
-                      ),
-                      builder: (context) {
-                        return Padding(
-                          padding: MediaQuery.of(context).viewInsets,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: <Widget>[
-                              Container(
-                                padding: const EdgeInsets.only(right: 15, left: 15, top: 10, bottom: 10),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Center(
-                                      child: Text('Input Depresi',
-                                        style: GoogleFonts.poppins(
-                                            textStyle: boldTextStyle(color: Colors.grey)
-                                        ),
-                                      ),
-                                    ),
-                                    20.height,
-                                    Text('Kode Depresi',
-                                        style: GoogleFonts.poppins(
-                                            textStyle: boldTextStyle(size: 14, color: Colors.grey)
-                                        )
-                                    ),
-                                    8.height,
-                                    AppTextField(
-                                      decoration: waInputDecoration(
-                                        hint: 'Enter Kode Depresi',
-                                      ),
-                                      textFieldType: TextFieldType.NAME,
-                                      keyboardType: TextInputType.name,
-                                      controller: kdDepresi,
-                                      focus: kdF,
-                                    ),
-                                    16.height,
-                                    Text('Nama Depresi',
-                                        style: GoogleFonts.poppins(
-                                            textStyle: boldTextStyle(size: 14, color: Colors.grey)
-                                        )
-                                    ),
-                                    8.height,
-                                    AppTextField(
-                                      decoration: waInputDecoration(
-                                        hint: 'Enter Depresi',
-                                      ),
-                                      textFieldType: TextFieldType.NAME,
-                                      keyboardType: TextInputType.name,
-                                      controller: nameDepresi,
-                                      focus: gejalaF,
-                                    ),
-                                    40.height,
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: AppButton(
-                                            color: Colors.grey,
-                                            width: context.width(),
-                                            child: Text('Cancel',
-                                                style: GoogleFonts.poppins(
-                                                    textStyle: boldTextStyle(color: Colors.white)
-                                                ) ),
-                                            onTap: () {
-                                              Navigator.pop(context);
-                                            },
-                                          ).cornerRadiusWithClipRRect(10).paddingOnly(left: context.width() * 0.1, right: context.width() * 0.1),
-                                        ),
-                                        const SizedBox(width: 10),
-                                        Expanded(
-                                          child: AppButton(
-                                            color: WAPrimaryColor,
-                                            width: context.width(),
-                                            child: Text('Simpan',
-                                                style: GoogleFonts.poppins(
-                                                    textStyle: boldTextStyle(color: Colors.white)
-                                                ) ),
-                                            onTap: () {
-                                              // if (widget.isEditProfile) {
-                                              //   finish(context);
-                                              // } else {
-                                              //   WAAddCredentialScreen().launch(context);
-                                              // }
-                                            },
-                                          ).cornerRadiusWithClipRRect(10).paddingOnly(left: context.width() * 0.1, right: context.width() * 0.1),
-                                        )
-                                      ],
-                                    )
-                                  ],
-                                ),
-                              )
-
-                            ],
-                          ),
-                        );
-                      });
+                  dialog("0");
+                  kdDepresi.clear();
+                  nameDepresi.clear();
                 },
               ),
             )
@@ -297,9 +411,11 @@ class _DepresiState extends State<Depresi> {
                                     },
                                     onSelected:(value){
                                       if(value == 0){
-                                        print("My account menu is selected.");
+                                        dialog(deps[index].id.toString());
+                                        kdDepresi.text = deps[index].kodeDepresi!;
+                                        nameDepresi.text = deps[index].depresi!;
                                       }else if(value == 1){
-                                        print("Settings menu is selected.");
+                                        dialogDelete(deps[index].kodeDepresi!, deps[index].id!);
                                       }
                                     }
                                 ),

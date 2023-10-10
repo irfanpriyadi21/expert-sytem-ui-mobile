@@ -73,6 +73,56 @@ class _GejalaState extends State<Gejala> {
     });
   }
 
+  dialogDelete(String name, id) {
+    return showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text(
+                'Delete $name ?',
+                style: GoogleFonts.poppins(
+                  textStyle: TextStyle(
+                      fontSize: 16,
+                      color: Colors.black
+                  ),
+                )
+            ),
+            actions: <Widget>[
+              TextButton(
+                child: Text(
+                    'Cancel',
+                    style: GoogleFonts.poppins(
+                      textStyle: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.red
+                      ),
+                    )
+                ),
+                onPressed: () {
+                  Navigator.of(context).pop(false);
+                },
+              ),
+              TextButton(
+                child: Text(
+                    'Ok',
+                    style: GoogleFonts.poppins(
+                      textStyle: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue
+                      ),
+                    )
+                ),
+                onPressed:(){
+                  deleteData(id.toString());
+                },
+              ),
+            ],
+          );
+        });
+  }
+
   postData(String id)async{
     setState(() {
       isLoading2 = true;
@@ -216,55 +266,7 @@ class _GejalaState extends State<Gejala> {
         });
   }
 
-  dialogDelete(String name, id) {
-    return showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: Text(
-                'Delete $name ?',
-                style: GoogleFonts.poppins(
-                  textStyle: TextStyle(
-                      fontSize: 16,
-                      color: Colors.black
-                  ),
-                )
-            ),
-            actions: <Widget>[
-              TextButton(
-                child: Text(
-                    'Cancel',
-                    style: GoogleFonts.poppins(
-                      textStyle: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.red
-                      ),
-                    )
-                ),
-                onPressed: () {
-                  Navigator.of(context).pop(false);
-                },
-              ),
-              TextButton(
-                child: Text(
-                    'Ok',
-                    style: GoogleFonts.poppins(
-                      textStyle: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blue
-                      ),
-                    )
-                ),
-                onPressed:(){
-                  deleteData(id.toString());
-                },
-              ),
-            ],
-          );
-        });
-  }
+
 
   @override
   Widget build(BuildContext context) {
