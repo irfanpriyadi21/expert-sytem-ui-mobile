@@ -1,5 +1,10 @@
 # tugas_kp
 
+<p float="left">
+  <img src="/Screenshot%202023-07-27%20at%2015.07.03.png" width="200" />
+  <img src="/Screenshot 2023-07-27 at 15.07.23.png" width="200" /> 
+</p>
+
 A new Flutter project.
 
 ## Getting Started
